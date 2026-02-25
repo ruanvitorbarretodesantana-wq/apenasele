@@ -8,9 +8,6 @@ import sqlite3
 import discord
 from discord.ext import commands
 
-# >>> NUNCA deixe token real hardcoded (o teu tava exposto)
-TOKEN = os.getenv("DISCORD_TOKEN") or 
-
 # IMAGENS (URL)
 LOGO_URL = "https://cdn.discordapp.com/attachments/1464089319387168838/1475902292988395846/IMG_1983.png?ex=699f2c9f&is=699ddb1f&hm=f9fd6252bc60b1efe0140eb02a4045163119368fae4f91a80ff011b731e65227&"
 
@@ -45,10 +42,17 @@ GAME_PROCLUBS = "proclubs"
 CONFIRM_TIMEOUT = 90        # 1:30
 END_PROMPT_TIME = 600       # 10 min
 
+# INTENTS + BOT (CRIA ANTES DE USAR bot.run)
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# TOKEN (PEGA DE VARIÁVEL DE AMBIENTE)
+TOKEN = os.getenv("DISCORD_TOKEN")
+if not TOKEN:
+    raise RuntimeError("DISCORD_TOKEN não definido nas Variáveis de Ambiente.")
 
 # chave: (gid, game, valor, gen)
 queues = {}   # (gid, game, valor, gen) -> [uid]
@@ -687,7 +691,7 @@ async def fecharmatch(interaction: discord.Interaction):
 
 
 # =========================
-# NOVO: /setwin
+# /setwin
 # =========================
 @bot.tree.command(name="setwin", description="Define o vencedor desta match (o outro vira perdedor e a match fecha).")
 async def setwin(interaction: discord.Interaction, winner: discord.Member):
@@ -715,7 +719,6 @@ async def setwin(interaction: discord.Interaction, winner: discord.Member):
     db_add_win(winner.id)
     db_add_loss(loser_id)
 
-    # log em #resultados
     try:
         await log_result(guild,
             f"🏆 **RESULTADO**\n"
@@ -736,7 +739,7 @@ async def setwin(interaction: discord.Interaction, winner: discord.Member):
 
 
 # =========================
-# NOVO: /p
+# /p
 # =========================
 @bot.tree.command(name="p", description="Mostra vitórias/derrotas e taxa de vitória de um jogador.")
 async def p(interaction: discord.Interaction, player: discord.Member):
@@ -744,7 +747,6 @@ async def p(interaction: discord.Interaction, player: discord.Member):
     if not guild:
         return
 
-    # Se quiser liberar em qualquer lugar, apaga esse IF:
     if not interaction.channel.name.startswith("partida-"):
         await interaction.response.send_message("Use isso no canal da partida.", ephemeral=True)
         return
@@ -777,4 +779,8 @@ async def on_ready():
     print(f"BOT ONLINE: {bot.user}")
 
 
-bot.run(TOKEN)
+# ============================================
+# START
+# ============================================
+if __name__ == "__main__":
+    bot.run(TOKEN)
